@@ -1,4 +1,4 @@
-const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const apiUrl = import.meta.env.VITE_API_URL || '';
 
 async function request(path, options = {}) {
   const response = await fetch(`${apiUrl}/api/v1${path}`, {
@@ -131,7 +131,8 @@ export const base44 = {
       window.location.assign('/');
     },
     redirectToLogin() {
-      window.location.assign(`${apiUrl}/auth/google`);
+      const returnTo = encodeURIComponent(window.location.href);
+      window.location.assign(`${apiUrl}/auth/google?returnTo=${returnTo}`);
     },
   },
   users: {

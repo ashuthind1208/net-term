@@ -5,6 +5,12 @@ import path from 'node:path'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  server: {
+    proxy: {
+      '/api': 'http://localhost:3101',
+      '/auth': 'http://localhost:3101',
+    },
+  },
   resolve: {
     alias: {
       '@': path.resolve(import.meta.dirname, 'src'),

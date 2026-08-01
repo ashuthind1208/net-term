@@ -35,6 +35,22 @@ export function isOriginAllowed(origin) {
   }
 }
 
+export function getClientRedirectUrl(value) {
+  try {
+    const url = new URL(String(value || ''))
+    if (url.username || url.password || !isOriginAllowed(url.origin)) return clientUrl
+    return url.href
+  } catch {
+    return clientUrl
+  }
+}
+
+function withAuthStatus(value, status) {
+  const url = new URL(getClientRedirectUrl(value))
+  url.searchParams.set('auth', status)
+  return url.href
+}
+
 app.set('trust proxy', process.env.NODE_ENV === 'production' ? 1 : 0)
 app.use(cors({
   origin(origin, callback) {
@@ -66,12 +82,19 @@ app.get('/api/health', (_req, res) => res.json({
 }))
 
 app.get('/auth/google', (req, res, next) => {
-  if (!googleAuthConfigured) return res.status(503).json({ error: 'Google authentication is not configured' })
-  return passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next)
+  const returnTo = getClientRedirectUrl(req.query.returnTo)
+  if (!googleAuthConfigured) return res.redirect(withAuthStatus(returnTo, 'unavailable'))
+  req.session.oauthReturnTo = returnTo
+  req.session.save((error) => {
+    if (error) return next(error)
+    return passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next)
+  })
 })
-app.get('/auth/google/callback', (req, res) => {
-  if (!googleAuthConfigured) return res.redirect(`${clientUrl}/?auth=unavailable`)
-  return passport.authenticate('google', { failureRedirect: `${clientUrl}/?auth=failed` })(req, res, () => res.redirect(clientUrl))
+app.get('/auth/google/callback', (req, res, next) => {
+  const returnTo = getClientRedirectUrl(req.session?.oauthReturnTo)
+  if (req.session) delete req.session.oauthReturnTo
+  if (!googleAuthConfigured) return res.redirect(withAuthStatus(returnTo, 'unavailable'))
+  return passport.authenticate('google', { failureRedirect: withAuthStatus(returnTo, 'failed') })(req, res, () => res.redirect(returnTo))
 })
 app.post('/auth/register', async (req, res, next) => {
   try {

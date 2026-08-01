@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+const apiUrl = import.meta.env.VITE_API_URL || ''
 
 export function useSourceRecords(entity) {
   const [state, setState] = useState({ data: [], loading: true, error: '' })
