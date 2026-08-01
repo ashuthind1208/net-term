@@ -1,0 +1,470 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 0 0% 3.9%;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.5rem;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+.signin-page {
+  --signin-ink: #210f37;
+  --signin-plum: #4f1c51;
+  --signin-coral: #a55b4b;
+  --signin-gold: #dca06d;
+  position: relative;
+  min-height: 100svh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+  padding: 48px 24px;
+  color: #fffaf4;
+  background: var(--signin-ink);
+}
+
+.signin-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -3;
+  background:
+    linear-gradient(115deg, rgba(79, 28, 81, 0.78), transparent 52%),
+    linear-gradient(305deg, rgba(165, 91, 75, 0.36), transparent 48%);
+}
+
+.signin-grid {
+  position: absolute;
+  inset: -25%;
+  z-index: -2;
+  opacity: 0.17;
+  background-image:
+    linear-gradient(rgba(255, 250, 244, 0.22) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 250, 244, 0.22) 1px, transparent 1px);
+  background-size: 72px 72px;
+  transform: perspective(520px) rotateX(58deg) rotateZ(-9deg) translateY(9%);
+  animation: signin-grid-drift 18s linear infinite;
+}
+
+.signin-network {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+}
+
+.signin-world {
+  position: absolute;
+  width: min(68vw, 960px);
+  right: -4vw;
+  top: 50%;
+  opacity: 0.54;
+  transform: translateY(-52%);
+  animation: signin-world-breathe 9s ease-in-out infinite;
+}
+
+.signin-world img {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 0 20px rgba(220, 160, 109, 0.12));
+}
+
+.signin-beacon {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f1bd8c;
+  box-shadow: 0 0 0 0 rgba(241, 189, 140, 0.52);
+  animation: signin-beacon-pulse 3.4s ease-out infinite;
+}
+
+.signin-beacon-one { left: 15%; top: 25%; }
+.signin-beacon-two { left: 51%; top: 29%; animation-delay: -0.8s; }
+.signin-beacon-three { left: 59%; top: 49%; animation-delay: -1.6s; }
+.signin-beacon-four { left: 79%; top: 55%; animation-delay: -2.4s; }
+
+.signin-cat6 {
+  position: absolute;
+  width: min(42vw, 620px);
+  height: 160px;
+  right: -5vw;
+  bottom: 2vh;
+  border-top: 8px solid rgba(165, 91, 75, 0.52);
+  border-radius: 50% 50% 0 0;
+  transform: rotate(-6deg);
+  animation: signin-cable-sway 7s ease-in-out infinite;
+}
+
+.signin-cable-signal {
+  position: absolute;
+  top: -12px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #f1bd8c;
+  box-shadow: 0 0 22px rgba(241, 189, 140, 0.9);
+  animation: signin-cable-travel 4.8s ease-in-out infinite;
+}
+
+.signin-rj45 {
+  position: absolute;
+  top: -30px;
+  display: grid;
+  grid-template-columns: repeat(8, 2px);
+  gap: 2px;
+  width: 38px;
+  height: 30px;
+  padding: 7px 3px 4px;
+  border: 2px solid rgba(255, 250, 244, 0.6);
+  border-radius: 4px 4px 2px 2px;
+  background: rgba(33, 15, 55, 0.72);
+}
+
+.signin-rj45 i { background: #dca06d; border-radius: 1px; }
+.signin-rj45-left { left: -8px; transform: rotate(-18deg); }
+.signin-rj45-right { right: -8px; transform: rotate(18deg); }
+
+.signin-ring {
+  position: absolute;
+  border: 1px solid rgba(220, 160, 109, 0.32);
+  border-radius: 50%;
+  animation: signin-ring-pulse 5s ease-in-out infinite;
+}
+
+.signin-ring-one {
+  width: min(62vw, 760px);
+  aspect-ratio: 1;
+  right: -18vw;
+  top: -34%;
+}
+
+.signin-ring-two {
+  width: min(44vw, 560px);
+  aspect-ratio: 1;
+  left: -16vw;
+  bottom: -30%;
+  animation-delay: -2.5s;
+}
+
+.signin-connection {
+  position: absolute;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(220, 160, 109, 0.7), transparent);
+  transform-origin: left center;
+}
+
+.signin-connection-one {
+  width: 46vw;
+  top: 22%;
+  left: 2%;
+  transform: rotate(18deg);
+}
+
+.signin-connection-two {
+  width: 42vw;
+  right: 2%;
+  bottom: 25%;
+  transform: rotate(-24deg);
+}
+
+.signin-connection-three {
+  width: 54vw;
+  left: 42%;
+  top: 58%;
+  transform: rotate(7deg);
+}
+
+.signin-packet {
+  position: absolute;
+  top: -3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f6c28b;
+  box-shadow: 0 0 18px rgba(246, 194, 139, 0.9);
+  animation: signin-packet-travel 6s linear infinite;
+}
+
+.signin-node {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255, 250, 244, 0.88);
+  background: var(--signin-coral);
+  transform: rotate(45deg);
+  box-shadow: 0 0 0 7px rgba(165, 91, 75, 0.14);
+  animation: signin-node-float 4.5s ease-in-out infinite;
+}
+
+.signin-node-one { top: 17%; left: 12%; }
+.signin-node-two { top: 25%; right: 16%; animation-delay: -1.4s; }
+.signin-node-three { bottom: 19%; left: 20%; animation-delay: -2.8s; }
+.signin-node-four { right: 11%; bottom: 14%; animation-delay: -3.6s; }
+
+.signin-content {
+  position: relative;
+  z-index: 2;
+  width: min(100%, 540px);
+}
+
+.signin-brand {
+  display: flex;
+  align-items: center;
+  margin-bottom: clamp(56px, 10vh, 104px);
+}
+
+.signin-brand img { width: min(100%, 260px); height: auto; }
+
+.signin-copy { max-width: 510px; }
+
+.signin-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+  color: #f6c28b;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.signin-eyebrow svg { width: 16px; height: 16px; }
+
+.signin-copy h1 {
+  margin: 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(48px, 7vw, 78px);
+  line-height: 0.96;
+  letter-spacing: 0;
+  font-weight: 700;
+}
+
+.signin-copy > p:last-child {
+  margin: 24px 0 0;
+  color: rgba(255, 250, 244, 0.72);
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+.signin-panel {
+  margin-top: 42px;
+  padding: 12px;
+  border: 1px solid rgba(255, 250, 244, 0.22);
+  border-radius: 8px;
+  background: rgba(33, 15, 55, 0.64);
+  box-shadow: 0 30px 80px rgba(9, 4, 16, 0.32);
+  backdrop-filter: blur(18px);
+}
+
+.signin-google {
+  width: 100%;
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: 28px 1fr 20px;
+  align-items: center;
+  gap: 14px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 5px;
+  color: #24182b;
+  background: #fffaf4;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+.signin-google:hover {
+  transform: translateY(-2px);
+  background: #fff;
+  box-shadow: 0 14px 28px rgba(9, 4, 16, 0.25);
+}
+
+.signin-google:focus-visible {
+  outline: 3px solid #f6c28b;
+  outline-offset: 3px;
+}
+
+.signin-google svg { width: 18px; height: 18px; justify-self: end; }
+
+.signin-google-mark {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: #fff;
+  background: conic-gradient(from -45deg, #4285f4 0 25%, #34a853 0 45%, #fbbc05 0 68%, #ea4335 0 83%, #4285f4 0);
+  font-family: Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.signin-panel > p {
+  margin: 12px 6px 2px;
+  color: rgba(255, 250, 244, 0.56);
+  font-size: 12px;
+  text-align: center;
+}
+
+.signin-footer {
+  position: absolute;
+  z-index: 2;
+  right: 28px;
+  bottom: 24px;
+  margin: 0;
+  color: rgba(255, 250, 244, 0.44);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@keyframes signin-grid-drift {
+  to { transform: perspective(520px) rotateX(58deg) rotateZ(-9deg) translate(72px, calc(9% + 72px)); }
+}
+
+@keyframes signin-ring-pulse {
+  50% { transform: scale(1.08); opacity: 0.5; }
+}
+
+@keyframes signin-packet-travel {
+  from { left: 0; opacity: 0; }
+  12%, 88% { opacity: 1; }
+  to { left: 100%; opacity: 0; }
+}
+
+@keyframes signin-node-float {
+  50% { translate: 0 -12px; rotate: 45deg; }
+}
+
+@keyframes signin-world-breathe {
+  50% { opacity: 0.7; transform: translateY(-52%) scale(1.015); }
+}
+
+@keyframes signin-beacon-pulse {
+  65%, 100% { box-shadow: 0 0 0 18px rgba(241, 189, 140, 0); }
+}
+
+@keyframes signin-cable-sway {
+  50% { translate: 0 -8px; rotate: -4deg; }
+}
+
+@keyframes signin-cable-travel {
+  from { left: 1%; opacity: 0; }
+  12%, 88% { opacity: 1; }
+  to { left: calc(99% - 15px); opacity: 0; }
+}
+
+@media (max-width: 640px) {
+  .signin-page { place-items: stretch; align-items: center; padding: 32px 20px 76px; }
+  .signin-brand { margin-bottom: 72px; }
+  .signin-copy h1 { font-size: 52px; }
+  .signin-panel { margin-top: 34px; }
+  .signin-ring-one { width: 120vw; right: -72vw; top: -10%; }
+  .signin-ring-two { width: 110vw; left: -70vw; bottom: -16%; }
+  .signin-world { width: 150vw; right: -88vw; top: 43%; opacity: 0.32; }
+  .signin-cat6 { width: 78vw; right: -34vw; bottom: 10vh; opacity: 0.62; }
+  .signin-footer { right: 20px; bottom: 20px; left: 20px; text-align: center; }
+}
+
+@media (max-height: 680px) {
+  .signin-page { align-items: start; }
+  .signin-brand { margin-bottom: 44px; }
+  .signin-footer { position: static; margin-top: 36px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signin-grid,
+  .signin-ring,
+  .signin-packet,
+  .signin-node,
+  .signin-world,
+  .signin-beacon,
+  .signin-cat6,
+  .signin-cable-signal { animation: none; }
+  .signin-google { transition: none; }
+}

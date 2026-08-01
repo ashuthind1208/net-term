@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">Net Term Solutions</title>
+  <desc id="desc">A connected cable forming the letter N</desc>
+  <rect width="64" height="64" rx="12" fill="#210f37"/>
+  <path d="M15 45V19c0-3 4-4 6-1l22 28c2 3 6 1 6-2V18" fill="none" stroke="#f1bd8c" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M10 20C20 8 40 6 54 13" fill="none" stroke="#dca06d" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="15" cy="46" r="4" fill="#dca06d"/>
+  <circle cx="49" cy="18" r="4" fill="#dca06d"/>
+  <circle cx="54" cy="13" r="3" fill="#f1bd8c"/>
+</svg>
