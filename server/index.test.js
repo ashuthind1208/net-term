@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import request from 'supertest'
+import { resolveGoogleCallbackUrl } from './auth.js'
 import app, { getClientRedirectUrl } from './index.js'
 
 test('GET /api/health reports service configuration', async () => {
@@ -38,6 +39,20 @@ test('OAuth preserves the exact allowed tunnel page', () => {
   const returnTo = 'https://1zhn91j9-5175.use.devtunnels.ms/Timesheets?timesheet=time-456'
 
   assert.equal(getClientRedirectUrl(returnTo), returnTo)
+})
+
+test('OAuth callback defaults to the first configured client URL', () => {
+  assert.equal(
+    resolveGoogleCallbackUrl('', 'https://example-tunnel.use.devtunnels.ms,http://localhost:5175'),
+    'https://example-tunnel.use.devtunnels.ms/auth/google/callback',
+  )
+})
+
+test('OAuth callback accepts an explicit production override', () => {
+  assert.equal(
+    resolveGoogleCallbackUrl('https://app.example.com/auth/google/callback', 'http://localhost:5175'),
+    'https://app.example.com/auth/google/callback',
+  )
 })
 
 test('OAuth rejects open redirects and credential-bearing URLs', () => {

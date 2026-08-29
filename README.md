@@ -8,13 +8,19 @@ React and Express reconstruction of the Net Term Solutions workspace, backed by 
 2. Create the PostgreSQL database named in `DATABASE_URL`.
 3. Run `npm run db:migrate`.
 4. Run `npm run dev`.
-5. Open `http://localhost:5173`.
+5. Open `http://localhost:5175`.
 
-If port `3001` is already occupied, change `PORT`, `VITE_API_URL`, and the Google callback URL to the same available API port.
+Vite uses port `5175` with `strictPort` enabled so a development tunnel keeps the same public hostname. The Vite proxy automatically uses the API `PORT` from `.env`.
 
 ## Google OAuth
 
-Create an OAuth 2.0 web client in Google Cloud Console. Add `GOOGLE_CALLBACK_URL` as an authorized redirect URI, then set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_CALLBACK_URL` in `.env`. Set `VITE_REQUIRE_AUTH=true` to gate the frontend behind Google sign-in.
+Create an OAuth 2.0 web client in Google Cloud Console and set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. The callback defaults to the first `CLIENT_URL` plus `/auth/google/callback`, so `GOOGLE_CALLBACK_URL` can normally remain blank.
+
+For local development, authorize `http://localhost:5175/auth/google/callback`. When using a tunnel, put its URL first in `CLIENT_URL` and authorize that exact tunnel callback, for example `https://your-tunnel-5175.use.devtunnels.ms/auth/google/callback`. Google does not allow wildcard redirect URIs, so keep the Vite port fixed and use a persistent tunnel name.
+
+In production, supply production `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `CLIENT_URL`, and `SESSION_SECRET` through the hosting environment. Authorize `<production CLIENT_URL>/auth/google/callback` in the production OAuth client. Set `GOOGLE_CALLBACK_URL` only when the public callback origin differs from `CLIENT_URL`.
+
+Set `VITE_REQUIRE_AUTH=true` to gate the frontend behind sign-in.
 
 For visual development without OAuth, keep `VITE_REQUIRE_AUTH=false`. To exercise protected APIs locally, set `DEV_AUTH_BYPASS=true` only outside production and seed a user matching `DEV_USER_ID`.
 

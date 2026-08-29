@@ -161,7 +161,7 @@ router.patch('/source/:entity/:id', async (req, res, next) => {
     if (!sourceEntities.has(entity)) return res.status(404).json({ error: 'Unknown entity' })
 
     if (entity === 'User') {
-      const localUser = await query('SELECT id, email, display_name, avatar_url, role, profile, created_at FROM users WHERE id = $1', [req.params.id])
+      const localUser = await query('SELECT id, email, display_name, avatar_url, role, profile, created_at FROM users WHERE id::text = $1', [req.params.id])
       if (localUser.rows[0]) {
         const requestedRole = req.body.role
         const databaseRole = requestedRole === 'admin' ? 'admin' : 'member'

@@ -27,15 +27,28 @@ export async function verifyPassword(password, storedHash) {
   return expected.length === actual.length && timingSafeEqual(expected, actual)
 }
 
+export function resolveGoogleCallbackUrl(callbackUrl = process.env.GOOGLE_CALLBACK_URL, clientUrls = process.env.CLIENT_URL) {
+  const explicitUrl = String(callbackUrl || '').trim()
+  const firstClientUrl = String(clientUrls || 'http://localhost:5175').split(',')[0].trim()
+  try {
+    const resolvedUrl = explicitUrl ? new URL(explicitUrl) : new URL('/auth/google/callback', firstClientUrl)
+    if (!['http:', 'https:'].includes(resolvedUrl.protocol) || resolvedUrl.username || resolvedUrl.password) return undefined
+    return resolvedUrl.href
+  } catch {
+    return undefined
+  }
+}
+
+export const googleCallbackUrl = resolveGoogleCallbackUrl()
 export const googleAuthConfigured = Boolean(
-  process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_CALLBACK_URL,
+  process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && googleCallbackUrl,
 )
 
 if (googleAuthConfigured) {
   passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.GOOGLE_CALLBACK_URL,
+    callbackURL: googleCallbackUrl,
   }, async (_accessToken, _refreshToken, profile, done) => {
     try {
       const email = profile.emails?.[0]?.value
