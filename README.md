@@ -24,6 +24,19 @@ Set `VITE_REQUIRE_AUTH=true` to gate the frontend behind sign-in.
 
 For visual development without OAuth, keep `VITE_REQUIRE_AUTH=false`. To exercise protected APIs locally, set `DEV_AUTH_BYPASS=true` only outside production and seed a user matching `DEV_USER_ID`.
 
+## Persistent uploads
+
+Set `UPLOADS_DIR` to an absolute writable directory outside the deployed application. Files are served through authenticated `/api/v1/uploads/*` URLs, so redeploying application source does not remove them. `UPLOAD_MAX_FILE_SIZE_MB` defaults to `25`.
+
+For Hostinger account `u266483472`, use a directory under the account home rather than `public_html`, for example:
+
+```env
+UPLOADS_DIR=/home/u266483472/net-term-uploads
+UPLOAD_MAX_FILE_SIZE_MB=25
+```
+
+Do not commit the production path or other production environment values to Git.
+
 ## Email relay
 
 Set `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, and `SMTP_APP_PASSWORD` in `.env`. For Gmail, use `smtp.gmail.com` with port `465` and `SMTP_SECURE=true`, or port `587` with `SMTP_SECURE=false`. Use a Google app password rather than the account password.

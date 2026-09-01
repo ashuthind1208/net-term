@@ -1,5 +1,6 @@
 import 'dotenv/config'
 import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
 import cors from 'cors'
 import express from 'express'
 import session from 'express-session'
@@ -11,6 +12,8 @@ import { smtpConfigured } from './email.js'
 
 const app = express()
 const port = Number(process.env.PORT || 3001)
+const currentDirectory = dirname(fileURLToPath(import.meta.url))
+const clientBuildDirectory = join(currentDirectory, '..', 'dist')
 const clientUrls = String(process.env.CLIENT_URL || 'http://localhost:5173').split(',').map((value) => value.trim()).filter(Boolean)
 const clientUrl = clientUrls[0]
 const allowedOrigins = new Set([
@@ -128,10 +131,18 @@ app.post('/auth/login', async (req, res, next) => {
 app.post('/auth/logout', (req, res, next) => req.logout((error) => error ? next(error) : req.session.destroy(() => res.status(204).end())))
 
 app.use('/api/v1', apiRoutes)
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(clientBuildDirectory))
+  app.use((req, res, next) => {
+    if (req.method !== 'GET' || req.path.startsWith('/api/') || req.path.startsWith('/auth/')) return next()
+    return res.sendFile('index.html', { root: clientBuildDirectory })
+  })
+}
 app.use((error, _req, res, _next) => {
   void _next
   console.error(error)
-  res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message })
+  const status = Number(error.status) || 500
+  res.status(status).json({ error: status >= 500 && process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message })
 })
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

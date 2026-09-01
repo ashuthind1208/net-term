@@ -1,8 +1,10 @@
 import { Router } from 'express'
 import { randomUUID } from 'node:crypto'
+import { basename } from 'node:path'
 import { requireUser } from './auth.js'
 import { query } from './db.js'
 import { sendEmail, sendTaskEventEmail, sendTimesheetEventEmail } from './email.js'
+import { uploadSingle, uploadsDirectory } from './uploads.js'
 
 const router = Router()
 
@@ -57,6 +59,38 @@ router.patch('/me', async (req, res, next) => {
     const user = result.rows[0]
     res.json({ data: { ...user, ...(user.profile || {}) } })
   } catch (error) { next(error) }
+})
+
+router.post('/integrations/upload', (req, res, next) => {
+  uploadSingle(req, res, (error) => {
+    if (error) {
+      error.status = error.code === 'LIMIT_FILE_SIZE' ? 413 : 400
+      return next(error)
+    }
+    if (!req.file) return res.status(400).json({ error: 'A file is required' })
+    return res.status(201).json({
+      data: {
+        file_url: `/api/v1/uploads/${req.file.filename}`,
+        filename: req.file.originalname,
+        size: req.file.size,
+      },
+    })
+  })
+})
+
+router.get('/uploads/:filename', (req, res, next) => {
+  const filename = basename(req.params.filename)
+  if (filename !== req.params.filename) return res.status(404).json({ error: 'File not found' })
+  res.set({
+    'Cache-Control': 'private, max-age=3600',
+    'Content-Security-Policy': "sandbox; default-src 'none'",
+    'X-Content-Type-Options': 'nosniff',
+  })
+  return res.sendFile(filename, { root: uploadsDirectory, dotfiles: 'deny' }, (error) => {
+    if (!error) return
+    if (error.status === 404) return res.status(404).json({ error: 'File not found' })
+    return next(error)
+  })
 })
 
 function sourcePayload(entity, id, body, user, existing = {}) {

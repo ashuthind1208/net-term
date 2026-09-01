@@ -1,11 +1,12 @@
 const apiUrl = import.meta.env.VITE_API_URL || '';
 
 async function request(path, options = {}) {
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
   const response = await fetch(`${apiUrl}/api/v1${path}`, {
     credentials: 'include',
     ...options,
     headers: {
-      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+      ...(options.body && !isFormData ? { 'Content-Type': 'application/json' } : {}),
       ...options.headers,
     },
   });
@@ -104,15 +105,6 @@ function entityClient(entity) {
   };
 }
 
-function fileToDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
-
 export const base44 = {
   entities: new Proxy({}, {
     get(_target, entity) {
@@ -143,7 +135,9 @@ export const base44 = {
   integrations: {
     Core: {
       async UploadFile({ file }) {
-        return { file_url: await fileToDataUrl(file) };
+        const formData = new FormData();
+        formData.append('file', file);
+        return request('/integrations/upload', { method: 'POST', body: formData });
       },
       SendEmail(payload) {
         return request('/integrations/email', { method: 'POST', body: JSON.stringify(payload) });
