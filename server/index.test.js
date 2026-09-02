@@ -55,6 +55,13 @@ test('OAuth callback accepts an explicit production override', () => {
   )
 })
 
+test('OAuth callback normalizes a duplicated leading path slash', () => {
+  assert.equal(
+    resolveGoogleCallbackUrl('https://app.example.com//auth/google/callback', 'http://localhost:5175'),
+    'https://app.example.com/auth/google/callback',
+  )
+})
+
 test('OAuth rejects open redirects and credential-bearing URLs', () => {
   const fallback = String(process.env.CLIENT_URL).split(',')[0]
 

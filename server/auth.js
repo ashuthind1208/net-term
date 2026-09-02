@@ -33,6 +33,7 @@ export function resolveGoogleCallbackUrl(callbackUrl = process.env.GOOGLE_CALLBA
   try {
     const resolvedUrl = explicitUrl ? new URL(explicitUrl) : new URL('/auth/google/callback', firstClientUrl)
     if (!['http:', 'https:'].includes(resolvedUrl.protocol) || resolvedUrl.username || resolvedUrl.password) return undefined
+    resolvedUrl.pathname = resolvedUrl.pathname.replace(/^\/{2,}/, '/')
     return resolvedUrl.href
   } catch {
     return undefined

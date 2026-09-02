@@ -10,6 +10,8 @@ React and Express reconstruction of the Net Term Solutions workspace, backed by 
 4. Run `npm run dev`.
 5. Open `http://localhost:5175`.
 
+For Supabase, use the Postgres connection string from the Supabase Connect dialog as `DATABASE_URL`. Supabase hosts and URLs containing `sslmode=require` automatically use TLS; `DATABASE_SSL=true` remains available for other hosted PostgreSQL providers.
+
 Vite uses port `5175` with `strictPort` enabled so a development tunnel keeps the same public hostname. The Vite proxy automatically uses the API `PORT` from `.env`.
 
 ## Google OAuth

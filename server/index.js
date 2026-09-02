@@ -97,7 +97,10 @@ app.get('/auth/google/callback', (req, res, next) => {
   const returnTo = getClientRedirectUrl(req.session?.oauthReturnTo)
   if (req.session) delete req.session.oauthReturnTo
   if (!googleAuthConfigured) return res.redirect(withAuthStatus(returnTo, 'unavailable'))
-  return passport.authenticate('google', { failureRedirect: withAuthStatus(returnTo, 'failed') })(req, res, () => res.redirect(returnTo))
+  return passport.authenticate('google', { failureRedirect: withAuthStatus(returnTo, 'failed') })(req, res, (error) => {
+    if (error) return next(error)
+    return res.redirect(returnTo)
+  })
 })
 app.post('/auth/register', async (req, res, next) => {
   try {
