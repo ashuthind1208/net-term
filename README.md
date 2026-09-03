@@ -22,6 +22,8 @@ For local development, authorize `http://localhost:5175/auth/google/callback`. W
 
 In production, supply production `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `CLIENT_URL`, and `SESSION_SECRET` through the hosting environment. Authorize `<production CLIENT_URL>/auth/google/callback` in the production OAuth client. Set `GOOGLE_CALLBACK_URL` only when the public callback origin differs from `CLIENT_URL`.
 
+Set `ADMIN_EMAILS` to a comma-separated list of accounts that must always receive the admin role. Keep at least one address configured before clearing or replacing user data so that account can sign in and invite the rest of the team.
+
 Set `VITE_REQUIRE_AUTH=true` to gate the frontend behind sign-in.
 
 For visual development without OAuth, keep `VITE_REQUIRE_AUTH=false`. To exercise protected APIs locally, set `DEV_AUTH_BYPASS=true` only outside production and seed a user matching `DEV_USER_ID`.
@@ -43,7 +45,7 @@ Do not commit the production path or other production environment values to Git.
 
 Set `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, and `SMTP_APP_PASSWORD` in `.env`. For Gmail, use `smtp.gmail.com` with port `465` and `SMTP_SECURE=true`, or port `587` with `SMTP_SECURE=false`. Use a Google app password rather than the account password.
 
-Set `EMAIL_FROM_NAME` and optionally `EMAIL_FROM_ADDRESS`, `EMAIL_REPLY_TO`, and `EMAIL_AUDIT_TO`. Task creation, assignment, edits, status changes, completion, and deletion send branded HTML emails to current and previous assignees, the task creator, and the optional audit address. Task writes continue normally when SMTP is not configured.
+Set `EMAIL_FROM_NAME` and optionally `EMAIL_FROM_ADDRESS`, `EMAIL_REPLY_TO`, and `EMAIL_AUDIT_TO`. Employee invitations send a branded join email and fail without creating an invitation when delivery is unavailable. Task creation, assignment, edits, status changes, completion, and deletion send branded HTML emails to current and previous assignees, the task creator, and the optional audit address. Task writes continue normally when SMTP is not configured.
 
 ## Commands
 

@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { buildTaskEventEmail, buildTimesheetEventEmail, emailShell, getStructuredSubject, prepareEmailContent } from './email.js'
+import { buildInviteEmail, buildTaskEventEmail, buildTimesheetEventEmail, emailShell, getStructuredSubject, prepareEmailContent } from './email.js'
 
 const duplicateEventLabels = [
   'Timesheet submitted',
@@ -55,6 +55,21 @@ test('generic email intro is removed from repeated body content', () => {
   assert.doesNotMatch(prepared.content, /A new expense was submitted/)
   assert.match(prepared.content, /Project: Office retrofit/)
   assert.match(prepared.content, /Amount: \$125/)
+})
+
+test('workspace invitation identifies the inviter, recipient, role, and join action', () => {
+  const payload = buildInviteEmail({
+    email: 'new.employee@example.com',
+    role: 'user',
+    inviter: { display_name: 'Workspace Admin' },
+  })
+
+  assert.equal(payload.subject, 'You are invited to Net Term Solutions')
+  assert.match(payload.body, /Workspace Admin invited you/)
+  assert.match(payload.html, /new\.employee@example\.com/)
+  assert.match(payload.html, /Team member/)
+  assert.equal(payload.actionLabel, 'Join the workspace')
+  assert.match(payload.actionUrl, /^https?:\/\//)
 })
 
 function renderTaskEmail(event, overrides = {}) {

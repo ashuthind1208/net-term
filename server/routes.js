@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { basename } from 'node:path'
 import { requireUser } from './auth.js'
 import { query } from './db.js'
-import { sendEmail, sendTaskEventEmail, sendTimesheetEventEmail } from './email.js'
+import { sendEmail, sendInviteEmail, sendTaskEventEmail, sendTimesheetEventEmail } from './email.js'
 import { uploadSingle, uploadsDirectory } from './uploads.js'
 
 const router = Router()
@@ -240,8 +240,21 @@ router.post('/users/invite', async (req, res, next) => {
     const email = String(req.body.email || '').trim().toLowerCase()
     if (!email) return res.status(400).json({ error: 'Email is required' })
     const id = randomUUID()
-    const payload = sourcePayload('User', id, { email, full_name: email.split('@')[0], role: req.body.role || 'user', is_active: true }, req.user)
+    const role = req.body.role === 'admin' ? 'admin' : 'user'
+    const payload = sourcePayload('User', id, { email, full_name: email.split('@')[0], role, is_active: true }, req.user)
     await query('INSERT INTO source_records (entity_type, source_id, payload, source_created_at, source_updated_at) VALUES ($1, $2, $3::jsonb, NOW(), NOW())', ['User', id, JSON.stringify(payload)])
+    try {
+      const delivery = await sendInviteEmail({ email, role, inviter: req.user })
+      if (!delivery.sent) {
+        const error = new Error('Invitation email is not configured')
+        error.status = 503
+        throw error
+      }
+    } catch (error) {
+      await query('DELETE FROM source_records WHERE entity_type = $1 AND source_id = $2', ['User', id])
+      if (!error.status) error.status = 502
+      throw error
+    }
     res.status(201).json({ data: payload })
   } catch (error) { next(error) }
 })

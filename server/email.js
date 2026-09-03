@@ -157,6 +157,32 @@ export async function sendEmail({ to, subject, body, html, eyebrow = 'Workspace 
   return { sent: true, messageId: info.messageId, recipients }
 }
 
+export function buildInviteEmail({ email, role, inviter }) {
+  const inviterName = inviter?.display_name || inviter?.email || 'A Net Term Solutions administrator'
+  const appUrl = String(process.env.CLIENT_URL || 'http://localhost:5173').split(',')[0].replace(/\/$/, '')
+  const roleLabel = role === 'admin' ? 'Administrator' : 'Team member'
+
+  return {
+    subject: 'You are invited to Net Term Solutions',
+    body: `${inviterName} invited you to join the Net Term Solutions workspace.\nAccount: ${email}\nRole: ${roleLabel}`,
+    html: `<div style="padding:16px;border-left:3px solid #dca06d;background:#fbf9fb">
+      <div style="margin-bottom:6px;color:#4f1c51;font:800 11px Arial,sans-serif;letter-spacing:.8px;text-transform:uppercase">Invitation details</div>
+      <div style="color:#493b4f;font-size:13px"><strong>Account:</strong> ${escapeHtml(email)}</div>
+      <div style="margin-top:4px;color:#493b4f;font-size:13px"><strong>Role:</strong> ${escapeHtml(roleLabel)}</div>
+    </div>`,
+    eyebrow: 'Workspace invitation',
+    actionLabel: 'Join the workspace',
+    actionUrl: appUrl,
+  }
+}
+
+export async function sendInviteEmail({ email, role, inviter }) {
+  return sendEmail({
+    to: email,
+    ...buildInviteEmail({ email, role, inviter }),
+  })
+}
+
 const fieldLabels = {
   title: 'Title',
   description: 'Description',

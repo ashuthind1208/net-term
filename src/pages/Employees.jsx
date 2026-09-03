@@ -46,6 +46,7 @@ export default function Employees() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("user");
   const [inviting, setInviting] = useState(false);
+  const [inviteError, setInviteError] = useState("");
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [reviewForm, setReviewForm] = useState({ rating: 4, review_period: "", strengths: "", areas_for_improvement: "", goals: "", comments: "" });
   const [savingReview, setSavingReview] = useState(false);
@@ -92,11 +93,17 @@ export default function Employees() {
 
   const handleInvite = async () => {
     setInviting(true);
-    await base44.users.inviteUser(inviteEmail, inviteRole);
-    setInviting(false);
-    setShowInviteDialog(false);
-    setInviteEmail("");
-    setInviteRole("user");
+    setInviteError("");
+    try {
+      await base44.users.inviteUser(inviteEmail, inviteRole);
+      setShowInviteDialog(false);
+      setInviteEmail("");
+      setInviteRole("user");
+    } catch (error) {
+      setInviteError(error.message || "The invitation email could not be sent.");
+    } finally {
+      setInviting(false);
+    }
   };
 
   const openReview = (user) => {
@@ -532,6 +539,7 @@ Write a 3-4 sentence performance summary highlighting strengths, areas to watch,
                 </SelectContent>
               </Select>
             </div>
+            {inviteError && <p role="alert" className="text-sm text-red-600">{inviteError}</p>}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowInviteDialog(false)}>Cancel</Button>
