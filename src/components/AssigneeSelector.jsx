@@ -15,7 +15,8 @@ export default function AssigneeSelector({ users = [], selected = [], onChange }
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const filtered = users.filter(u =>
+  const activeUsers = users.filter(u => u.is_active !== false);
+  const filtered = activeUsers.filter(u =>
     (u.full_name || u.email).toLowerCase().includes(search.toLowerCase())
   );
 
@@ -23,7 +24,7 @@ export default function AssigneeSelector({ users = [], selected = [], onChange }
     onChange(selected.includes(email) ? selected.filter(e => e !== email) : [...selected, email]);
   };
 
-  const selectedUsers = users.filter(u => selected.includes(u.email));
+  const selectedUsers = activeUsers.filter(u => selected.includes(u.email));
 
   return (
     <div ref={ref} className="relative">

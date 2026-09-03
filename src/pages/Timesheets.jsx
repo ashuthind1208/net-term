@@ -118,7 +118,7 @@ export default function Timesheets() {
     );
     setTimesheets(ts.status === "fulfilled" ? ts.value : []);
     setProjects(filteredP);
-    setTasks(allT);
+    setTasks(isAdminUser ? allT : allT.filter(task => task.assigned_to?.includes(user?.email)));
     setLoading(false);
   };
 

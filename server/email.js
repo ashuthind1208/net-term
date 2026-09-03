@@ -160,6 +160,7 @@ export async function sendEmail({ to, subject, body, html, eyebrow = 'Workspace 
 export function buildInviteEmail({ email, role, inviter }) {
   const inviterName = inviter?.display_name || inviter?.email || 'A Net Term Solutions administrator'
   const appUrl = String(process.env.CLIENT_URL || 'http://localhost:5173').split(',')[0].replace(/\/$/, '')
+  const actionUrl = `${appUrl}/auth/google?returnTo=${encodeURIComponent(`${appUrl}/`)}`
   const roleLabel = role === 'admin' ? 'Administrator' : 'Team member'
 
   return {
@@ -172,7 +173,7 @@ export function buildInviteEmail({ email, role, inviter }) {
     </div>`,
     eyebrow: 'Workspace invitation',
     actionLabel: 'Join the workspace',
-    actionUrl: appUrl,
+    actionUrl,
   }
 }
 

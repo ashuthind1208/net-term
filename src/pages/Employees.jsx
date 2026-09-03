@@ -5,7 +5,7 @@ import {
   Users, Search, Mail, Phone, Briefcase, Shield, UserCheck,
   MoreVertical, Edit2, Star as StarIcon, TrendingUp, Clock, CheckCircle2,
   LayoutGrid, List, Building2, DollarSign, Award, Target,
-  ChevronDown, Brain, Plus
+  ChevronDown, Brain, Plus, Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { base44 as b44 } from "@/api/base44Client";
 
 const ROLE_CONFIG = {
@@ -40,7 +41,7 @@ export default function Employees() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editUser, setEditUser] = useState(null);
-  const [form, setForm] = useState({ role: "user", job_title: "", department: "", phone: "", hourly_rate: "" });
+  const [form, setForm] = useState({ role: "user", job_title: "", department: "", phone: "", hourly_rate: "", is_active: true });
   const [saving, setSaving] = useState(false);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -78,17 +79,21 @@ export default function Employees() {
 
   const openEdit = (user) => {
     setEditUser(user);
-    setForm({ role: user.role || "user", job_title: user.job_title || "", department: user.department || "", phone: user.phone || "", hourly_rate: user.hourly_rate || "" });
+    setForm({ role: user.role || "user", job_title: user.job_title || "", department: user.department || "", phone: user.phone || "", hourly_rate: user.hourly_rate || "", is_active: user.is_active !== false });
     setShowEditDialog(true);
   };
 
   const handleSave = async () => {
+    if (editUser?.is_active !== false && form.is_active === false && !confirm("Deactivate this employee and remove their project and task assignments?")) return;
     setSaving(true);
-    await base44.entities.User.update(editUser.id, form);
-    setSaving(false);
-    setShowEditDialog(false);
-    setEditUser(null);
-    loadData();
+    try {
+      await base44.entities.User.update(editUser.id, form);
+      setShowEditDialog(false);
+      setEditUser(null);
+      await loadData();
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleInvite = async () => {
@@ -96,6 +101,7 @@ export default function Employees() {
     setInviteError("");
     try {
       await base44.users.inviteUser(inviteEmail, inviteRole);
+      await loadData();
       setShowInviteDialog(false);
       setInviteEmail("");
       setInviteRole("user");
@@ -222,6 +228,7 @@ Write a 3-4 sentence performance summary highlighting strengths, areas to watch,
             <Badge className={`text-xs ${ROLE_CONFIG[user.role]?.color || "bg-gray-100 text-gray-600"}`}>
               <RoleIcon className="w-3 h-3 mr-1" />{ROLE_CONFIG[user.role]?.label || user.role}
             </Badge>
+            {user.is_active === false && <Badge className="text-xs bg-red-100 text-red-700">Inactive</Badge>}
             {user.department && <Badge className="text-xs bg-gray-100 text-gray-600"><Building2 className="w-3 h-3 mr-1" />{user.department}</Badge>}
           </div>
 
@@ -443,6 +450,7 @@ Write a 3-4 sentence performance summary highlighting strengths, areas to watch,
                   <p className="text-xs text-gray-400 truncate">{u.email}</p>
                 </div>
                 <Badge className={`text-xs hidden sm:flex ${ROLE_CONFIG[u.role]?.color || "bg-gray-100 text-gray-600"}`}>{ROLE_CONFIG[u.role]?.label || u.role}</Badge>
+                {u.is_active === false && <Badge className="text-xs bg-red-100 text-red-700">Inactive</Badge>}
                 {u.department && <span className="text-xs text-gray-400 hidden md:block">{u.department}</span>}
                 <div className="text-xs text-gray-500 hidden lg:flex items-center gap-1"><Clock className="w-3 h-3" /> {stats.totalHours}h</div>
                 <div className="text-xs hidden lg:flex items-center gap-1">
@@ -480,6 +488,13 @@ Write a 3-4 sentence performance summary highlighting strengths, areas to watch,
               <div><Label>Job Title</Label><Input value={form.job_title} onChange={e => setForm(f => ({ ...f, job_title: e.target.value }))} placeholder="e.g. Software Engineer" className="mt-1" /></div>
               <div><Label>Department</Label><Input value={form.department} onChange={e => setForm(f => ({ ...f, department: e.target.value }))} placeholder="e.g. Engineering" className="mt-1" /></div>
               <div><Label>Phone</Label><Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="+1 555 000 0000" className="mt-1" /></div>
+              <div className="flex items-center justify-between gap-4 rounded-md border border-gray-200 p-3">
+                <div>
+                  <Label htmlFor="employee-active">Account access</Label>
+                  <p className="text-xs text-gray-500">Inactive employees cannot sign in or receive assignments.</p>
+                </div>
+                <Switch id="employee-active" checked={form.is_active} onCheckedChange={is_active => setForm(f => ({ ...f, is_active }))} />
+              </div>
               <div>
                 <Label>Hourly Rate ($/hr)</Label>
                 <Input type="number" min="0" step="0.01" value={form.hourly_rate} onChange={e => setForm(f => ({ ...f, hourly_rate: e.target.value ? Number(e.target.value) : "" }))} placeholder="e.g. 45.00" className="mt-1" />
@@ -524,8 +539,20 @@ Write a 3-4 sentence performance summary highlighting strengths, areas to watch,
       </Dialog>
 
       {/* Invite Dialog */}
-      <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
-        <DialogContent className="max-w-md">
+      <Dialog open={showInviteDialog} onOpenChange={open => { if (!inviting) setShowInviteDialog(open); }}>
+        <DialogContent className="max-w-md overflow-hidden">
+          {inviting && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/95" role="status" aria-live="polite">
+              <div className="flex w-52 flex-col items-center text-center">
+                <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-[#210F37] text-white shadow-lg">
+                  <Mail className="h-7 w-7" />
+                  <Loader2 className="absolute -inset-2 h-20 w-20 animate-spin text-[#DCA06D]" />
+                </div>
+                <p className="mt-5 font-semibold text-[#210F37]">Sending invitation</p>
+                <p className="mt-1 text-xs text-gray-500">Delivering the secure workspace link…</p>
+              </div>
+            </div>
+          )}
           <DialogHeader><DialogTitle className="text-[#210F37]">Invite Employee</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div><Label>Email *</Label><Input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="employee@company.com" className="mt-1" /></div>

@@ -69,7 +69,7 @@ test('workspace invitation identifies the inviter, recipient, role, and join act
   assert.match(payload.html, /new\.employee@example\.com/)
   assert.match(payload.html, /Team member/)
   assert.equal(payload.actionLabel, 'Join the workspace')
-  assert.match(payload.actionUrl, /^https?:\/\//)
+  assert.match(payload.actionUrl, /^https?:\/\/.*\/auth\/google\?returnTo=/)
 })
 
 function renderTaskEmail(event, overrides = {}) {

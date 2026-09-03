@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { randomUUID } from 'node:crypto'
 import { basename } from 'node:path'
 import { requireUser } from './auth.js'
+import { filterSourceRecordsForUser, inactiveAssignees, isAccountActive, isTaskAssignedTo, prepareEmployeeSubmission } from './access.js'
 import { query } from './db.js'
 import { sendEmail, sendInviteEmail, sendTaskEventEmail, sendTimesheetEventEmail } from './email.js'
 import { uploadSingle, uploadsDirectory } from './uploads.js'
@@ -149,7 +150,7 @@ async function appendLocalUsers(records) {
       full_name: user.display_name,
       photo_url: user.avatar_url,
       role: user.role === 'member' ? 'user' : user.role,
-      is_active: true,
+      is_active: isAccountActive(user),
       created_date: user.created_at,
       updated_date: user.updated_at,
       ...(user.profile || {}),
@@ -157,18 +158,65 @@ async function appendLocalUsers(records) {
   ]
 }
 
+async function sourcePayloads(entity) {
+  const result = await query(
+    `SELECT payload FROM source_records
+     WHERE entity_type = $1
+     ORDER BY source_created_at DESC NULLS LAST, imported_at DESC`,
+    [entity],
+  )
+  return result.rows.map((row) => row.payload)
+}
+
+async function validateActiveEmployees(emails) {
+  if (!emails?.length) return
+  const users = await appendLocalUsers(await sourcePayloads('User'))
+  const invalid = inactiveAssignees(emails, users)
+  if (!invalid.length) return
+  const error = new Error(`Inactive or unknown employees cannot be assigned: ${invalid.join(', ')}`)
+  error.status = 400
+  throw error
+}
+
+async function prepareSourceBody(entity, body, user) {
+  if (entity === 'Task') await validateActiveEmployees(body.assigned_to)
+  if (entity === 'Project') {
+    await validateActiveEmployees([...(body.team_members || []), body.manager_email].filter(Boolean))
+  }
+  if (user.role === 'admin' || !['Timesheet', 'Expense'].includes(entity)) return body
+  const [projects, tasks] = await Promise.all([sourcePayloads('Project'), sourcePayloads('Task')])
+  return prepareEmployeeSubmission(entity, body, user, projects, tasks)
+}
+
+async function removeEmployeeAssignments(email) {
+  const result = await query(
+    `SELECT entity_type, source_id, payload FROM source_records
+     WHERE entity_type IN ('Project', 'Task')`,
+  )
+  for (const record of result.rows) {
+    const payload = { ...record.payload }
+    if (record.entity_type === 'Task') {
+      payload.assigned_to = (payload.assigned_to || []).filter((value) => value.toLowerCase() !== email.toLowerCase())
+    } else {
+      payload.team_members = (payload.team_members || []).filter((value) => value.toLowerCase() !== email.toLowerCase())
+      if (payload.manager_email?.toLowerCase() === email.toLowerCase()) payload.manager_email = null
+    }
+    await query(
+      'UPDATE source_records SET payload = $3::jsonb, source_updated_at = NOW(), imported_at = NOW() WHERE entity_type = $1 AND source_id = $2',
+      [record.entity_type, record.source_id, JSON.stringify(payload)],
+    )
+  }
+}
+
 router.get('/source/:entity', async (req, res, next) => {
   try {
     if (!sourceEntities.has(req.params.entity)) return res.status(404).json({ error: 'Unknown entity' })
-    if (req.user.role !== 'admin' && ['AuditLog', 'EmployeeReview'].includes(req.params.entity)) return res.status(403).json({ error: 'Admin access required' })
-    const result = await query(
-      `SELECT payload FROM source_records
-       WHERE entity_type = $1
-       ORDER BY source_created_at DESC NULLS LAST, imported_at DESC`,
-      [req.params.entity],
-    )
-    const records = result.rows.map((row) => row.payload)
-    res.json({ data: req.params.entity === 'User' ? await appendLocalUsers(records) : records })
+    if (req.user.role !== 'admin' && ['AuditLog', 'EmployeeReview', 'Invoice', 'Procurement'].includes(req.params.entity)) return res.status(403).json({ error: 'Admin access required' })
+    const records = req.params.entity === 'User'
+      ? await appendLocalUsers(await sourcePayloads('User'))
+      : await sourcePayloads(req.params.entity)
+    const tasks = req.user.role !== 'admin' && req.params.entity === 'Project' ? await sourcePayloads('Task') : []
+    res.json({ data: filterSourceRecordsForUser(req.params.entity, records, req.user, tasks) })
   } catch (error) { next(error) }
 })
 
@@ -176,8 +224,10 @@ router.post('/source/:entity', async (req, res, next) => {
   try {
     const entity = req.params.entity
     if (!sourceEntities.has(entity)) return res.status(404).json({ error: 'Unknown entity' })
+    if (req.user.role !== 'admin' && ['User', 'Project', 'Task'].includes(entity)) return res.status(403).json({ error: 'Admin access required' })
     const id = randomUUID()
-    const payload = sourcePayload(entity, id, req.body, req.user)
+    const body = await prepareSourceBody(entity, req.body, req.user)
+    const payload = sourcePayload(entity, id, body, req.user)
     await query(
       `INSERT INTO source_records (entity_type, source_id, payload, source_created_at, source_updated_at)
        VALUES ($1, $2, $3::jsonb, NOW(), NOW())`,
@@ -193,10 +243,14 @@ router.patch('/source/:entity/:id', async (req, res, next) => {
   try {
     const entity = req.params.entity
     if (!sourceEntities.has(entity)) return res.status(404).json({ error: 'Unknown entity' })
+    if (req.user.role !== 'admin' && ['User', 'Project'].includes(entity)) return res.status(403).json({ error: 'Admin access required' })
 
     if (entity === 'User') {
       const localUser = await query('SELECT id, email, display_name, avatar_url, role, profile, created_at FROM users WHERE id::text = $1', [req.params.id])
       if (localUser.rows[0]) {
+        if (localUser.rows[0].email.toLowerCase() === req.user.email.toLowerCase() && req.body.is_active === false) {
+          return res.status(400).json({ error: 'You cannot deactivate your own account' })
+        }
         const requestedRole = req.body.role
         const databaseRole = requestedRole === 'admin' ? 'admin' : 'member'
         const profile = { ...req.body }
@@ -207,29 +261,54 @@ router.patch('/source/:entity/:id', async (req, res, next) => {
           [req.params.id, databaseRole, JSON.stringify(profile)],
         )
         const user = updated.rows[0]
+        if (req.body.is_active === false) await removeEmployeeAssignments(user.email)
         return res.json({ data: { id: user.id, email: user.email, full_name: user.display_name, photo_url: user.avatar_url, role: user.role === 'member' ? 'user' : user.role, created_date: user.created_at, updated_date: user.updated_at, ...(user.profile || {}) } })
       }
     }
 
     const current = await query('SELECT payload FROM source_records WHERE entity_type = $1 AND source_id = $2', [entity, req.params.id])
     if (!current.rows[0]) return res.status(404).json({ error: 'Record not found' })
-    const payload = sourcePayload(entity, req.params.id, req.body, req.user, current.rows[0].payload)
+    if (req.user.role !== 'admin' && entity === 'Task') {
+      if (!isTaskAssignedTo(current.rows[0].payload, req.user.email)) return res.status(403).json({ error: 'This task is not assigned to you' })
+      if (Object.keys(req.body).some((field) => !['status', 'completed_at'].includes(field))) return res.status(403).json({ error: 'Employees can only update task status' })
+    }
+    if (req.user.role !== 'admin' && ['Timesheet', 'Expense'].includes(entity)) {
+      if (!filterSourceRecordsForUser(entity, [current.rows[0].payload], req.user).length) return res.status(403).json({ error: 'You can only update your own records' })
+      if (['status', 'reviewed_by', 'reviewed_at', 'rejection_reason'].some((field) => req.body[field] !== undefined)) return res.status(403).json({ error: 'Admin access required for review fields' })
+    }
+    if (entity === 'User' && current.rows[0].payload.email?.toLowerCase() === req.user.email.toLowerCase() && req.body.is_active === false) return res.status(400).json({ error: 'You cannot deactivate your own account' })
+    const body = await prepareSourceBody(entity, req.body, req.user)
+    const payload = sourcePayload(entity, req.params.id, body, req.user, current.rows[0].payload)
     await query(
       'UPDATE source_records SET payload = $3::jsonb, source_updated_at = NOW(), imported_at = NOW() WHERE entity_type = $1 AND source_id = $2',
       [entity, req.params.id, JSON.stringify(payload)],
     )
     if (entity === 'Task') await notifyTaskEvent('updated', payload, current.rows[0].payload, req.user)
     if (entity === 'Timesheet') await notifyTimesheetEvent('updated', payload, current.rows[0].payload, req.user)
+    if (entity === 'User' && payload.email) {
+      const databaseRole = payload.role === 'admin' ? 'admin' : 'member'
+      await query(
+        `UPDATE users SET role = $2, profile = profile || $3::jsonb, updated_at = NOW() WHERE LOWER(email) = LOWER($1)`,
+        [payload.email, databaseRole, JSON.stringify({ is_active: payload.is_active !== false })],
+      )
+      if (payload.is_active === false) await removeEmployeeAssignments(payload.email)
+    }
     res.json({ data: payload })
   } catch (error) { next(error) }
 })
 
 router.delete('/source/:entity/:id', async (req, res, next) => {
   try {
-    if (!sourceEntities.has(req.params.entity)) return res.status(404).json({ error: 'Unknown entity' })
-    const result = await query('DELETE FROM source_records WHERE entity_type = $1 AND source_id = $2 RETURNING payload', [req.params.entity, req.params.id])
+    const entity = req.params.entity
+    if (!sourceEntities.has(entity)) return res.status(404).json({ error: 'Unknown entity' })
+    const current = await query('SELECT payload FROM source_records WHERE entity_type = $1 AND source_id = $2', [entity, req.params.id])
+    if (!current.rows[0]) return res.status(404).json({ error: 'Record not found' })
+    if (req.user.role !== 'admin' && ['User', 'Project'].includes(entity)) return res.status(403).json({ error: 'Admin access required' })
+    if (req.user.role !== 'admin' && entity === 'Task' && !isTaskAssignedTo(current.rows[0].payload, req.user.email)) return res.status(403).json({ error: 'This task is not assigned to you' })
+    if (req.user.role !== 'admin' && ['Timesheet', 'Expense'].includes(entity) && !filterSourceRecordsForUser(entity, [current.rows[0].payload], req.user).length) return res.status(403).json({ error: 'You can only delete your own records' })
+    const result = await query('DELETE FROM source_records WHERE entity_type = $1 AND source_id = $2 RETURNING payload', [entity, req.params.id])
     if (!result.rows[0]) return res.status(404).json({ error: 'Record not found' })
-    if (req.params.entity === 'Task') await notifyTaskEvent('deleted', result.rows[0].payload, result.rows[0].payload, req.user)
+    if (entity === 'Task') await notifyTaskEvent('deleted', result.rows[0].payload, result.rows[0].payload, req.user)
     res.status(204).end()
   } catch (error) { next(error) }
 })

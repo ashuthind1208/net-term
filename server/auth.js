@@ -2,6 +2,7 @@ import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from 'node:cry
 import { promisify } from 'node:util'
 import passport from 'passport'
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20'
+import { isAccountActive } from './access.js'
 import { query } from './db.js'
 
 const scrypt = promisify(scryptCallback)
@@ -9,6 +10,13 @@ const scrypt = promisify(scryptCallback)
 export async function roleForNewUser(email) {
   const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map((value) => value.trim().toLowerCase()).filter(Boolean)
   if (adminEmails.includes(email.toLowerCase())) return 'admin'
+  const invitation = await query(
+    `SELECT payload FROM source_records
+     WHERE entity_type = 'User' AND LOWER(payload->>'email') = LOWER($1)
+     ORDER BY source_created_at DESC NULLS LAST, imported_at DESC LIMIT 1`,
+    [email],
+  )
+  if (invitation.rows[0]) return invitation.rows[0].payload.role === 'admin' ? 'admin' : 'member'
   const result = await query('SELECT COUNT(*)::int AS count FROM users')
   return result.rows[0].count === 0 ? 'admin' : 'member'
 }
@@ -54,6 +62,13 @@ if (googleAuthConfigured) {
     try {
       const email = profile.emails?.[0]?.value
       const avatarUrl = profile.photos?.[0]?.value
+      const invitation = await query(
+        `SELECT payload FROM source_records
+         WHERE entity_type = 'User' AND LOWER(payload->>'email') = LOWER($1)
+         ORDER BY source_created_at DESC NULLS LAST, imported_at DESC LIMIT 1`,
+        [email],
+      )
+      if (invitation.rows[0] && !isAccountActive(invitation.rows[0].payload)) return done(null, false)
       const role = await roleForNewUser(email)
       const result = await query(
         `INSERT INTO users (google_id, email, display_name, avatar_url, role)
@@ -82,7 +97,10 @@ passport.deserializeUser(async (id, done) => {
 })
 
 export function requireUser(req, res, next) {
-  if (req.user) return next()
+  if (req.user) {
+    if (!isAccountActive(req.user)) return res.status(403).json({ error: 'This employee account is inactive' })
+    return next()
+  }
   if (process.env.NODE_ENV !== 'production' && process.env.DEV_AUTH_BYPASS === 'true') {
     req.user = {
       id: process.env.DEV_USER_ID || '00000000-0000-0000-0000-000000000001',

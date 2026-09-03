@@ -14,7 +14,7 @@
     "test": "node --test server/*.test.js",
     "build": "vite build",
     "lint": "eslint .",
-    "check:server": "node --check server.js && node --check server/index.js && node --check server/routes.js && node --check server/uploads.js && node --check server/auth.js && node --check server/email.js && node --check server/migrate.js && node --check server/import-base44.js",
+    "check:server": "node --check server.js && node --check server/index.js && node --check server/routes.js && node --check server/access.js && node --check server/uploads.js && node --check server/auth.js && node --check server/email.js && node --check server/migrate.js && node --check server/import-base44.js",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -29,6 +29,7 @@
     "@radix-ui/react-select": "^2.1.6",
     "@radix-ui/react-separator": "^1.1.2",
     "@radix-ui/react-slot": "^1.1.2",
+    "@radix-ui/react-switch": "^1.3.7",
     "@radix-ui/react-tabs": "^1.1.3",
     "@radix-ui/react-toast": "^1.2.2",
     "@radix-ui/react-tooltip": "^1.1.8",

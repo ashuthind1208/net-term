@@ -485,7 +485,7 @@ export default function Projects() {
             <TabsList className="bg-gray-100">
               <TabsTrigger value="overview" className="text-xs">Overview</TabsTrigger>
               {isAdmin && <TabsTrigger value="finance" className="text-xs">Finance & Billing</TabsTrigger>}
-              <TabsTrigger value="client" className="text-xs">Client View</TabsTrigger>
+              {isAdmin && <TabsTrigger value="client" className="text-xs">Client View</TabsTrigger>}
             </TabsList>
             {isAdmin && (
               <Button onClick={openCreate} className="bg-[#A55B4B] hover:bg-[#4F1C51] text-white">
@@ -695,7 +695,7 @@ export default function Projects() {
         )}
 
         {/* ── TAB: Client View ── */}
-        <TabsContent value="client" className="mt-0 space-y-5">
+        {isAdmin && <TabsContent value="client" className="mt-0 space-y-5">
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 bg-gradient-to-br from-[#210F37] to-[#4F1C51] rounded-xl flex items-center justify-center flex-shrink-0">
@@ -776,7 +776,7 @@ export default function Projects() {
             })}
             {clientProjects.length === 0 && <div className="text-center py-16 text-gray-400"><Building2 className="w-10 h-10 mx-auto mb-2 opacity-30" /><p>No projects found</p></div>}
           </div>
-        </TabsContent>
+        </TabsContent>}
       </Tabs>
 
       {/* ── View Project Modal ── */}
