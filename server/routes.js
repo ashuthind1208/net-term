@@ -318,10 +318,24 @@ router.post('/users/invite', async (req, res, next) => {
     if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin access required' })
     const email = String(req.body.email || '').trim().toLowerCase()
     if (!email) return res.status(400).json({ error: 'Email is required' })
-    const id = randomUUID()
-    const role = req.body.role === 'admin' ? 'admin' : 'user'
-    const payload = sourcePayload('User', id, { email, full_name: email.split('@')[0], role, is_active: true }, req.user)
-    await query('INSERT INTO source_records (entity_type, source_id, payload, source_created_at, source_updated_at) VALUES ($1, $2, $3::jsonb, NOW(), NOW())', ['User', id, JSON.stringify(payload)])
+    const existingResult = await query(
+      `SELECT source_id, payload FROM source_records
+       WHERE entity_type = 'User' AND LOWER(payload->>'email') = LOWER($1)
+       ORDER BY source_created_at DESC NULLS LAST, imported_at DESC LIMIT 1`,
+      [email],
+    )
+    const existing = existingResult.rows[0]
+    const id = existing?.source_id || randomUUID()
+    const role = ['admin', 'manager'].includes(req.body.role) ? req.body.role : 'user'
+    const payload = sourcePayload('User', id, { email, full_name: existing?.payload?.full_name || email.split('@')[0], role, is_active: true }, req.user, existing?.payload)
+    if (existing) {
+      await query(
+        'UPDATE source_records SET payload = $3::jsonb, source_updated_at = NOW(), imported_at = NOW() WHERE entity_type = $1 AND source_id = $2',
+        ['User', id, JSON.stringify(payload)],
+      )
+    } else {
+      await query('INSERT INTO source_records (entity_type, source_id, payload, source_created_at, source_updated_at) VALUES ($1, $2, $3::jsonb, NOW(), NOW())', ['User', id, JSON.stringify(payload)])
+    }
     try {
       const delivery = await sendInviteEmail({ email, role, inviter: req.user })
       if (!delivery.sent) {
@@ -330,10 +344,21 @@ router.post('/users/invite', async (req, res, next) => {
         throw error
       }
     } catch (error) {
-      await query('DELETE FROM source_records WHERE entity_type = $1 AND source_id = $2', ['User', id])
+      if (existing) {
+        await query(
+          'UPDATE source_records SET payload = $3::jsonb, source_updated_at = NOW(), imported_at = NOW() WHERE entity_type = $1 AND source_id = $2',
+          ['User', id, JSON.stringify(existing.payload)],
+        )
+      } else {
+        await query('DELETE FROM source_records WHERE entity_type = $1 AND source_id = $2', ['User', id])
+      }
       if (!error.status) error.status = 502
       throw error
     }
+    await query(
+      `UPDATE users SET role = $2, profile = profile || '{"is_active": true}'::jsonb, updated_at = NOW() WHERE LOWER(email) = LOWER($1)`,
+      [email, role === 'admin' ? 'admin' : 'member'],
+    )
     res.status(201).json({ data: payload })
   } catch (error) { next(error) }
 })
